@@ -1,0 +1,125 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-syne);
+}
+
+html,
+body {
+  height: 100%;
+  background-color: #03050f;
+  color: #e8eaff;
+}
+
+body {
+  font-family: var(--font-geist-sans), -apple-system, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-syne), system-ui, sans-serif;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #4f7eff 0%, #9747ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient button hover effect */
+.btn-gradient {
+  background: linear-gradient(135deg, #4f7eff 0%, #9747ff 100%);
+  position: relative;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+.btn-gradient:hover {
+  box-shadow: 0 6px 24px rgba(79, 126, 255, 0.4);
+  transform: translateY(-1px);
+}
+.btn-gradient:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(79, 126, 255, 0.3);
+}
+.btn-gradient:disabled {
+  opacity: 0.45;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Animated gradient for loading state */
+@keyframes gradient-shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.btn-gradient-loading {
+  background: linear-gradient(270deg, #4f7eff, #9747ff, #4f7eff);
+  background-size: 200% 200%;
+  animation: gradient-shimmer 2s ease infinite;
+}
+
+/* Custom scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(79, 126, 255, 0.12) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(79, 126, 255, 0.12);
+  border-radius: 4px;
+}
+
+/* Prose overrides for generation output */
+.prose-studio h2 {
+  color: #a5b4fc;
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(165, 180, 252, 0.15);
+}
+.prose-studio h3 {
+  color: #c7d2fe;
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.prose-studio p {
+  color: #a8b3cc;
+  line-height: 1.75;
+  margin-bottom: 0.75rem;
+}
+.prose-studio strong {
+  color: #e8eaff;
+  font-weight: 600;
+}
+.prose-studio ul, .prose-studio ol {
+  color: #a8b3cc;
+  padding-left: 1.25rem;
+}
+.prose-studio li {
+  margin-bottom: 0.3rem;
+}
+.prose-studio hr {
+  border-color: rgba(255,255,255,0.06);
+  margin: 1.5rem 0;
+}
