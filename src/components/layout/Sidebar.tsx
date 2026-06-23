@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import type { Brand } from "@/lib/types";
+import { useBrands } from "@/hooks/useBrands";
 import { cn } from "@/lib/utils";
 
 const BRAND_COLORS = [
@@ -23,17 +22,6 @@ function getBrandColor(name: string): string {
   return BRAND_COLORS[hash % BRAND_COLORS.length];
 }
 
-function loadBrands(): Brand[] {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(
-      localStorage.getItem("vriefai_brands") ?? "[]"
-    ) as Brand[];
-  } catch {
-    return [];
-  }
-}
-
 interface SidebarProps {
   onClose?: () => void;
 }
@@ -41,11 +29,7 @@ interface SidebarProps {
 export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [brands, setBrands] = useState<Brand[]>([]);
-
-  useEffect(() => {
-    setBrands(loadBrands());
-  }, [pathname]);
+  const { brands } = useBrands();
 
   function navigate(path: string) {
     router.push(path);
