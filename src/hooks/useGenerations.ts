@@ -30,20 +30,20 @@ function fromDb(row: DbGeneration): Generation {
 
 export function useGenerations(brandId?: string) {
   const [generations, setGenerations] = useState<Generation[]>([]);
-  const [loading, setLoading] = useState(!!brandId);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!brandId) return;
-    setLoading(true);
-    supabase
+    const query = supabase
       .from("generations")
       .select("*")
-      .eq("brand_id", brandId)
-      .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (!error && data) setGenerations((data as DbGeneration[]).map(fromDb));
-        setLoading(false);
-      });
+      .order("created_at", { ascending: false });
+
+    const scopedQuery = brandId ? query.eq("brand_id", brandId) : query;
+
+    scopedQuery.then(({ data, error }) => {
+      if (!error && data) setGenerations((data as DbGeneration[]).map(fromDb));
+      setLoading(false);
+    });
   }, [brandId]);
 
   const createGeneration = useCallback(

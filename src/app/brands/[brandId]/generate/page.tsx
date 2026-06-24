@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useState } from "react";
-import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useBrands } from "@/hooks/useBrands";
 import { useGenerations } from "@/hooks/useGenerations";
@@ -10,16 +9,10 @@ import {
   type GenerationParams,
 } from "@/components/generations/GenerationForm";
 import { GenerationOutput } from "@/components/generations/GenerationOutput";
-
-const BRAND_COLORS = [
-  "#4f7eff", "#9747ff", "#06b6d4", "#10b981",
-  "#f59e0b", "#ec4899", "#f97316",
-];
-
-function getBrandColor(name: string): string {
-  const hash = name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return BRAND_COLORS[hash % BRAND_COLORS.length];
-}
+import { LoadingState } from "@/components/ui/LoadingState";
+import { StatusBanner } from "@/components/ui/StatusBanner";
+import { clearGenerateDraft } from "@/lib/generateDraft";
+import { getBrandColor } from "@/lib/brandColors";
 
 export default function GeneratePage({
   params,
@@ -34,30 +27,29 @@ export default function GeneratePage({
   const [output, setOutput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const brand = getBrand(brandId);
 
   if (brandsLoading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-[#3a4060] text-sm">
-        Cargando…
-      </div>
-    );
+    return <LoadingState label="Preparando nueva programación..." />;
   }
 
   if (!brand) {
     return (
-      <div className="flex items-center justify-center h-64 text-[#3a4060] text-sm">
+      <div className="flex h-64 items-center justify-center text-sm text-[#8b8498]">
         Marca no encontrada
       </div>
     );
   }
 
-  const color = getBrandColor(brand.name);
+  const activeBrand = brand;
+  const color = getBrandColor(activeBrand.name);
 
   async function handleGenerate(genParams: GenerationParams) {
     setOutput("");
     setSaved(false);
+    setHasError(false);
     setIsLoading(true);
 
     try {
@@ -65,10 +57,10 @@ export default function GeneratePage({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          briefPermanente: brand!.briefPermanente,
-          analisisRedes: brand!.analisisRedes,
-          vocabularioUsa: brand!.vocabulario.usa,
-          vocabularioEvita: brand!.vocabulario.evita,
+          briefPermanente: activeBrand.briefPermanente,
+          analisisRedes: activeBrand.analisisRedes,
+          vocabularioUsa: activeBrand.vocabulario.usa,
+          vocabularioEvita: activeBrand.vocabulario.evita,
           briefMensual: genParams.briefMensual,
           cantReels: genParams.cantReels,
           cantCarruseles: genParams.cantCarruseles,
@@ -101,7 +93,9 @@ export default function GeneratePage({
         output: fullOutput,
       });
       setSaved(true);
+      clearGenerateDraft(brandId);
     } catch (error) {
+      setHasError(true);
       setOutput(
         `Error: ${error instanceof Error ? error.message : "Error desconocido"}`
       );
@@ -111,17 +105,11 @@ export default function GeneratePage({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className="min-h-full px-4 md:px-8 py-8 max-w-3xl mx-auto"
-    >
-      {/* Header */}
+    <div className="mx-auto min-h-full max-w-4xl px-4 py-8 md:px-8 md:py-10">
       <div className="mb-8">
         <button
           onClick={() => router.push(`/brands/${brandId}`)}
-          className="flex items-center gap-2 text-[#4a5064] hover:text-white transition-colors mb-5 text-sm"
+          className="mb-5 flex cursor-pointer items-center gap-2 text-sm text-[#645f72] transition-colors hover:text-[#171422]"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path
@@ -135,45 +123,41 @@ export default function GeneratePage({
           Volver a {brand.name}
         </button>
 
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold font-display shrink-0"
-            style={{
-              background: `${color}18`,
-              border: `1.5px solid ${color}35`,
-              color,
-            }}
-          >
-            {brand.name[0]?.toUpperCase()}
-          </div>
-          <div>
-            <h1 className="font-display text-2xl md:text-3xl font-bold text-white leading-tight">
-              Nueva programación
+        <div className="text-center">
+          <p className="text-base font-medium text-[#625d6d] md:text-lg">
+            Nueva programación
+          </p>
+          <div className="mt-3 flex items-center justify-center gap-3">
+            <span
+              className="h-3 w-3 shrink-0 rounded-full"
+              style={{ background: color }}
+            />
+            <h1 className="font-display text-3xl font-bold leading-tight tracking-[-0.03em] text-[#171422] md:text-5xl">
+              {brand.name}
             </h1>
-            <p className="text-sm text-[#4a5064]">{brand.name}</p>
           </div>
         </div>
       </div>
 
       <GenerationForm
         brand={brand}
-        brandColor={color}
         onGenerate={handleGenerate}
         isLoading={isLoading}
       />
 
-      {saved && (
-        <motion.div
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-4 flex items-center gap-2 text-xs text-[#4a5064]"
-        >
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          Guardada en el historial de {brand.name}
-        </motion.div>
-      )}
+      <StatusBanner
+        show={saved}
+        message={`Programación guardada en el historial de ${brand.name}`}
+        className="mt-4"
+      />
+      <StatusBanner
+        show={hasError && !isLoading}
+        status="error"
+        message="No se pudo completar la generación. Revisá el output o intentá de nuevo."
+        className="mt-4"
+      />
 
       <GenerationOutput output={output} isLoading={isLoading} />
-    </motion.div>
+    </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Brand } from "@/lib/types";
+import { sortBrandsByName } from "@/lib/utils";
 
 type DbBrand = {
   id: string;
@@ -34,7 +35,7 @@ export function useBrands() {
     supabase
       .from("brands")
       .select("*")
-      .order("created_at", { ascending: false })
+      .order("name", { ascending: true })
       .then(({ data, error }) => {
         if (!error && data) setBrands((data as DbBrand[]).map(fromDb));
         setLoading(false);
@@ -55,7 +56,7 @@ export function useBrands() {
         .single();
       if (error) throw error;
       const brand = fromDb(row as DbBrand);
-      setBrands((prev) => [brand, ...prev]);
+      setBrands((prev) => sortBrandsByName([...prev, brand]));
       return brand;
     },
     []
@@ -72,8 +73,12 @@ export function useBrands() {
       const { error } = await supabase.from("brands").update(patch).eq("id", id);
       if (error) throw error;
       setBrands((prev) =>
-        prev.map((b) =>
-          b.id === id ? { ...b, ...data, updatedAt: new Date().toISOString() } : b
+        sortBrandsByName(
+          prev.map((b) =>
+            b.id === id
+              ? { ...b, ...data, updatedAt: new Date().toISOString() }
+              : b
+          )
         )
       );
     },

@@ -4,47 +4,45 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import type { Brand } from "@/lib/types";
-import { formatDate } from "@/lib/utils";
-import { cn } from "@/lib/utils";
-
-const BRAND_COLORS = [
-  "#4f7eff",
-  "#9747ff",
-  "#06b6d4",
-  "#10b981",
-  "#f59e0b",
-  "#ec4899",
-  "#f97316",
-];
-
-function getBrandColor(name: string): string {
-  const hash = name
-    .split("")
-    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return BRAND_COLORS[hash % BRAND_COLORS.length];
-}
+import { getBrandColor } from "@/lib/brandColors";
+import { cn, formatDate } from "@/lib/utils";
 
 interface BrandCardProps {
   brand: Brand;
   generationCount: number;
+  latestGenerationAt?: string;
   onDelete: () => void;
 }
 
-export function BrandCard({ brand, generationCount, onDelete }: BrandCardProps) {
+function getDescription(brand: Brand): string {
+  const source = brand.briefPermanente.trim() || brand.analisisRedes.trim();
+  if (!source) return "Sin descripción cargada todavía.";
+  return source.length > 160 ? `${source.slice(0, 160)}...` : source;
+}
+
+export function BrandCard({
+  brand,
+  generationCount,
+  latestGenerationAt,
+  onDelete,
+}: BrandCardProps) {
   const router = useRouter();
   const color = getBrandColor(brand.name);
   const [armedDelete, setArmedDelete] = useState(false);
-  const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
 
   function handleDeleteClick(e: React.MouseEvent) {
     e.stopPropagation();
     if (armedDelete) {
       clearTimeout(resetTimer.current);
       onDelete();
-    } else {
-      setArmedDelete(true);
-      resetTimer.current = setTimeout(() => setArmedDelete(false), 2500);
+      return;
     }
+
+    setArmedDelete(true);
+    resetTimer.current = setTimeout(() => setArmedDelete(false), 2500);
   }
 
   function handleEditClick(e: React.MouseEvent) {
@@ -53,144 +51,86 @@ export function BrandCard({ brand, generationCount, onDelete }: BrandCardProps) 
   }
 
   return (
-    <motion.div
-      whileHover={{ y: -3, scale: 1.005 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
+    <motion.article
+      whileHover={{ y: -1 }}
+      transition={{ duration: 0.16, ease: "easeOut" }}
       onClick={() => router.push(`/brands/${brand.id}`)}
       className={cn(
-        "relative bg-[#0a0c1b] rounded-2xl p-5 cursor-pointer overflow-hidden group",
-        "border transition-all duration-200",
+        "group flex h-full cursor-pointer flex-col rounded-2xl border bg-white p-4 shadow-sm transition-all duration-200",
         armedDelete
-          ? "border-red-500/40 shadow-lg shadow-red-950/20"
-          : "border-white/6 hover:border-white/14 hover:shadow-xl"
+          ? "border-red-300 shadow-red-100"
+          : "border-[#ded8cf] hover:border-[#cfc7bd] hover:shadow-md"
       )}
-      style={{
-        boxShadow: armedDelete ? undefined : `0 0 0 0 transparent`,
-      }}
-      onMouseEnter={(e) => {
-        if (!armedDelete) {
-          (e.currentTarget as HTMLDivElement).style.boxShadow = `0 12px 40px ${color}12`;
-        }
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-      }}
     >
-      {/* Top color bar */}
-      <div
-        className="absolute top-0 left-0 right-0 h-[2px] opacity-50 group-hover:opacity-100 transition-opacity duration-300"
-        style={{
-          background: `linear-gradient(90deg, ${color}, ${color}00)`,
-        }}
-      />
-
-      {/* Action buttons — appear on hover */}
-      <div
-        className="absolute top-3.5 right-3.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={handleEditClick}
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-[#4a5064] hover:text-[#a8b3cc] hover:bg-white/6 transition-all"
-          title="Editar marca"
-        >
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-            <path
-              d="M9 1.5L11.5 4 4.5 11H2V8.5L9 1.5Z"
-              stroke="currentColor"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-        <button
-          onClick={handleDeleteClick}
-          className={cn(
-            "w-7 h-7 rounded-lg flex items-center justify-center transition-all",
-            armedDelete
-              ? "text-red-400 bg-red-950/40 scale-110"
-              : "text-[#4a5064] hover:text-red-400 hover:bg-red-950/20"
-          )}
-          title={armedDelete ? "Confirmar eliminación" : "Eliminar marca"}
-        >
-          {armedDelete ? (
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-              <path
-                d="M2.5 6.5l3 3 5-5"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          ) : (
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-              <path
-                d="M2 3.5h9M4.5 3.5V2.5H8.5V3.5M5 6V9.5M8 6V9.5M3 3.5L3.5 10.5H9.5L10 3.5"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          )}
-        </button>
-      </div>
-
-      {/* Brand avatar + name */}
-      <div className="flex items-start gap-3 mb-4 pr-16">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 font-display"
-          style={{
-            background: `${color}15`,
-            border: `1.5px solid ${color}30`,
-            color,
-          }}
-        >
-          {brand.name[0]?.toUpperCase()}
-        </div>
-        <div className="min-w-0 pt-0.5">
-          <h2 className="font-display text-[15px] font-bold text-white leading-tight truncate group-hover:text-white transition-colors">
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{ background: color }}
+          />
+          <h2 className="truncate font-display text-lg font-bold leading-tight text-[#171422]">
             {brand.name}
           </h2>
-          {armedDelete && (
-            <motion.p
-              initial={{ opacity: 0, y: -3 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-[11px] text-red-400 mt-0.5"
-            >
-              Clic en ✓ para confirmar
-            </motion.p>
-          )}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={handleEditClick}
+            className="rounded-lg px-2 py-1 text-[11px] font-semibold text-[#625d6d] transition-colors hover:bg-[#eeeae3] hover:text-[#171422]"
+          >
+            Editar
+          </button>
+          <button
+            type="button"
+            onClick={handleDeleteClick}
+            className={cn(
+              "rounded-lg px-2 py-1 text-[11px] font-semibold transition-colors",
+              armedDelete
+                ? "bg-red-50 text-red-700"
+                : "text-[#8b8498] hover:bg-red-50 hover:text-red-700"
+            )}
+          >
+            {armedDelete ? "Confirmar" : "Eliminar"}
+          </button>
         </div>
       </div>
 
-      {/* Brief excerpt */}
-      {brand.briefPermanente && (
-        <p className="text-xs text-[#4a5064] line-clamp-2 mb-4 leading-relaxed font-mono">
-          {brand.briefPermanente.slice(0, 110)}
-          {brand.briefPermanente.length > 110 ? "…" : ""}
-        </p>
+      <p className="mb-4 line-clamp-3 flex-1 text-sm leading-5 text-[#625d6d]">
+        {getDescription(brand)}
+      </p>
+
+      {armedDelete && (
+        <motion.p
+          initial={{ opacity: 0, y: -2 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="-mt-2 mb-3 text-[11px] font-medium text-red-600"
+        >
+          Volvé a hacer clic en eliminar para confirmar.
+        </motion.p>
       )}
 
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-3 border-t border-white/5">
-        <span
-          className="text-[11px] px-2.5 py-1 rounded-full font-semibold"
-          style={{
-            background: `${color}12`,
-            border: `1px solid ${color}22`,
-            color: `${color}`,
-          }}
-        >
-          {generationCount}{" "}
-          {generationCount === 1 ? "programación" : "programaciones"}
-        </span>
-        <span className="text-[11px] text-[#3a4060]">
-          {formatDate(brand.updatedAt)}
-        </span>
+      <div className="mt-auto grid grid-cols-2 gap-2">
+        <div className="rounded-lg border border-[#ebe5dc] bg-[#faf8f4] px-3 py-2.5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8b8498]">
+            Programaciones
+          </p>
+          <p className="mt-0.5 text-sm font-semibold text-[#171422]">
+            {generationCount}
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-[#ebe5dc] bg-[#faf8f4] px-3 py-2.5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8b8498]">
+            Última
+          </p>
+          <p className="mt-0.5 truncate text-sm font-semibold text-[#171422]">
+            {latestGenerationAt
+              ? formatDate(latestGenerationAt)
+              : "Sin datos"}
+          </p>
+        </div>
       </div>
-    </motion.div>
+    </motion.article>
   );
 }

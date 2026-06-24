@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { fadeUp, fadeUpTransition } from "@/lib/motion";
+import { GenerationViewer } from "./GenerationViewer";
 
 interface GenerationOutputProps {
   output: string;
@@ -23,15 +23,15 @@ export function GenerationOutput({ output, isLoading }: GenerationOutputProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      initial={fadeUp.initial}
+      animate={fadeUp.animate}
+      transition={fadeUpTransition}
       className="mt-8"
     >
-      {/* Header bar */}
-      <div className="flex items-center justify-between mb-3">
+      {/* Header row */}
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <p className="text-[11px] font-semibold text-[#3a4060] uppercase tracking-widest">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8b8498]">
             Programación generada
           </p>
           <AnimatePresence>
@@ -40,9 +40,9 @@ export function GenerationOutput({ output, isLoading }: GenerationOutputProps) {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                className="flex items-center gap-1.5 text-xs text-[#4f7eff] bg-[#4f7eff]/10 border border-[#4f7eff]/20 px-2.5 py-1 rounded-full"
+                className="flex items-center gap-1.5 rounded-full border border-[#ded8cf] bg-white px-2.5 py-1 text-xs text-[#625d6d]"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-[#4f7eff] animate-pulse" />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#171422]" />
                 Generando
               </motion.div>
             )}
@@ -50,62 +50,69 @@ export function GenerationOutput({ output, isLoading }: GenerationOutputProps) {
         </div>
 
         {!isLoading && output && (
-          <button
+          <motion.button
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleCopy}
-            className="flex items-center gap-1.5 text-xs transition-colors px-3 py-1.5 rounded-lg border border-white/6 hover:bg-white/4"
-            style={{ color: copied ? "#10b981" : "#4a5064" }}
+            className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#d8d2ca] bg-white px-3 py-1.5 text-xs transition-colors hover:bg-[#faf8f4]"
+            style={{ color: copied ? "#10b981" : "#645f72" }}
           >
-            {copied ? (
-              <>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path
-                    d="M2 6l3 3 5-5"
-                    stroke="#10b981"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                Copiado
-              </>
-            ) : (
-              <>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <rect
-                    x="4.5"
-                    y="4.5"
-                    width="6"
-                    height="6"
-                    rx="1"
-                    stroke="currentColor"
-                    strokeWidth="1.2"
-                  />
-                  <path
-                    d="M7.5 4.5V2.5A1 1 0 006.5 1.5h-4A1 1 0 001.5 2.5v4A1 1 0 002.5 7.5H4.5"
-                    stroke="currentColor"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                Copiar texto
-              </>
-            )}
-          </button>
+            <AnimatePresence mode="wait" initial={false}>
+              {copied ? (
+                <motion.span
+                  key="copied"
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="flex items-center gap-1.5"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path
+                      d="M2 6l3 3 5-5"
+                      stroke="#10b981"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  Copiado
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="copy"
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="flex items-center gap-1.5"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <rect
+                      x="4.5"
+                      y="4.5"
+                      width="6"
+                      height="6"
+                      rx="1"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                    />
+                    <path
+                      d="M7.5 4.5V2.5A1 1 0 006.5 1.5h-4A1 1 0 001.5 2.5v4A1 1 0 002.5 7.5H4.5"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  Copiar todo
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
         )}
       </div>
 
-      {/* Output content */}
-      <div className="bg-[#0a0c1b] border border-white/6 rounded-2xl p-6 md:p-8 overflow-auto max-h-[75vh]">
-        {isLoading ? (
-          <pre className="whitespace-pre-wrap text-sm text-[#7880a8] font-mono leading-relaxed">
-            {output}
-            <span className="inline-block w-2 h-[1.1em] bg-[#4f7eff]/60 ml-0.5 align-text-bottom animate-pulse rounded-sm" />
-          </pre>
-        ) : (
-          <div className="prose-studio">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{output}</ReactMarkdown>
-          </div>
-        )}
+      {/* Viewer card */}
+      <div className="overflow-hidden rounded-2xl border border-[#ded8cf] bg-white shadow-sm">
+        <GenerationViewer output={output} isLoading={isLoading} />
       </div>
     </motion.div>
   );

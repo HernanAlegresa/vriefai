@@ -13,12 +13,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  primary: "btn-gradient text-white font-semibold",
+  primary:
+    "bg-[#171422] text-white font-semibold border border-[#171422] shadow-sm hover:bg-[#2a2638] transition-colors",
   secondary:
-    "bg-white/6 text-white hover:bg-white/10 border border-white/10 transition-colors",
-  ghost: "text-[#7880a8] hover:text-white hover:bg-white/5 transition-colors",
+    "bg-white text-[#171422] hover:bg-[#f7f5f0] border border-[#d8d2ca] shadow-sm transition-colors",
+  ghost:
+    "text-[#625d6d] hover:text-[#171422] hover:bg-[#eeeae3] transition-colors",
   danger:
-    "text-red-400 hover:text-red-300 hover:bg-red-950/30 transition-colors",
+    "text-red-600 hover:text-red-700 hover:bg-red-50 border border-transparent transition-colors",
 };
 
 const sizes: Record<Size, string> = {
@@ -29,32 +31,47 @@ const sizes: Record<Size, string> = {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    { variant = "primary", size = "md", loading, className, children, disabled, ...props },
+    {
+      variant = "primary",
+      size = "md",
+      loading,
+      className,
+      children,
+      disabled,
+      ...props
+    },
     ref
-  ) => (
-    <button
-      ref={ref}
-      disabled={disabled || loading}
-      className={cn(
-        "inline-flex items-center justify-center gap-2 font-medium",
-        "disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none",
-        variants[variant],
-        sizes[size],
-        loading && variant === "primary" && "btn-gradient-loading",
-        className
-      )}
-      {...props}
-    >
-      {loading ? (
-        <>
-          <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
-          {children}
-        </>
-      ) : (
-        children
-      )}
-    </button>
-  )
+  ) => {
+    const isDisabled = disabled || loading;
+
+    return (
+      <button
+        ref={ref}
+        disabled={isDisabled}
+        className={cn(
+          "inline-flex items-center justify-center gap-2 font-medium",
+          "cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:transform-none disabled:shadow-none",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171422]/20 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f7f5f0]",
+          !isDisabled &&
+            "transition-all duration-150 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.98]",
+          variants[variant],
+          sizes[size],
+          loading && variant === "primary" && "btn-gradient-loading",
+          className
+        )}
+        {...props}
+      >
+        {loading ? (
+          <>
+            <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            {children}
+          </>
+        ) : (
+          children
+        )}
+      </button>
+    );
+  }
 );
 
 Button.displayName = "Button";

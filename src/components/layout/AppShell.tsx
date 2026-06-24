@@ -10,13 +10,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   return (
-    <div className="flex h-full bg-[#03050f]">
-      {/* Desktop sidebar */}
+    <div className="flex h-full bg-[#f7f5f0] text-[#171422]">
       <div className="hidden md:flex shrink-0">
         <Sidebar />
       </div>
 
-      {/* Mobile overlay + drawer */}
       <AnimatePresence>
         {drawerOpen && (
           <>
@@ -27,7 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setDrawerOpen(false)}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden"
+              className="fixed inset-0 bg-[#171422]/35 backdrop-blur-sm z-40 md:hidden"
             />
             <motion.div
               key="drawer"
@@ -43,14 +41,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </AnimatePresence>
 
-      {/* Main content column */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile top header */}
-        <header className="md:hidden flex items-center justify-between px-4 h-14 border-b border-white/6 bg-[#03050f]/95 backdrop-blur-md shrink-0 sticky top-0 z-30">
+        <header className="md:hidden flex items-center justify-between px-4 h-14 border-b border-[#ded8cf] bg-[#fbfaf7]/95 backdrop-blur-md shrink-0 sticky top-0 z-30">
           <button
             onClick={() => setDrawerOpen(true)}
             aria-label="Abrir menú"
-            className="p-2 -ml-2 rounded-lg text-[#7880a8] hover:text-white hover:bg-white/5 transition-colors"
+            className="p-2 -ml-2 rounded-lg text-[#645f72] hover:text-[#171422] hover:bg-[#ebe6de] transition-colors cursor-pointer"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path
@@ -63,18 +59,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
 
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#4f7eff] to-[#9747ff] flex items-center justify-center shadow-lg shadow-[#4f7eff]/20">
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                <path
-                  d="M1.5 6.5h10M6.5 1.5L11.5 6.5 6.5 11.5"
-                  stroke="white"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+            <div className="w-7 h-7 rounded-lg bg-[#171422] flex items-center justify-center">
+              <span className="font-display text-xs font-bold text-white">v</span>
             </div>
-            <span className="font-display text-sm font-bold text-white tracking-tight">
+            <span className="font-display text-sm font-bold text-[#171422] tracking-tight">
               vriefai
             </span>
           </div>
@@ -82,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button
             onClick={() => router.push("/brands/new")}
             aria-label="Nueva marca"
-            className="p-2 -mr-2 rounded-lg text-[#4f7eff] hover:text-white hover:bg-white/5 transition-colors"
+            className="p-2 -mr-2 rounded-lg text-[#4f7eff] hover:text-[#171422] hover:bg-[#ebe6de] transition-colors cursor-pointer"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path

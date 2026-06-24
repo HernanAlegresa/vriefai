@@ -1,22 +1,15 @@
 "use client";
 
-import { use, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { use, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useBrands } from "@/hooks/useBrands";
 import { useGenerations } from "@/hooks/useGenerations";
 import { GenerationCard } from "@/components/generations/GenerationCard";
 import { Button } from "@/components/ui/Button";
-
-const BRAND_COLORS = [
-  "#4f7eff", "#9747ff", "#06b6d4", "#10b981",
-  "#f59e0b", "#ec4899", "#f97316",
-];
-
-function getBrandColor(name: string): string {
-  const hash = name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return BRAND_COLORS[hash % BRAND_COLORS.length];
-}
+import { LoadingState } from "@/components/ui/LoadingState";
+import { getBrandColor } from "@/lib/brandColors";
+import { staggerContainer, staggerItem } from "@/lib/motion";
 
 export default function BrandDetailPage({
   params,
@@ -28,30 +21,31 @@ export default function BrandDetailPage({
   const { getBrand, deleteBrand, loading: brandsLoading } = useBrands();
   const { generations, deleteGeneration, deleteGenerationsForBrand } =
     useGenerations(brandId);
-
   const [confirmDelete, setConfirmDelete] = useState(false);
+
   const brand = getBrand(brandId);
+  const sorted = useMemo(
+    () =>
+      [...generations].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
+    [generations]
+  );
 
   if (brandsLoading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-[#3a4060] text-sm">
-        Cargando…
-      </div>
-    );
+    return <LoadingState label="Cargando marca..." />;
   }
 
   if (!brand) {
     return (
-      <div className="flex items-center justify-center h-64 text-[#3a4060] text-sm">
+      <div className="flex h-64 items-center justify-center text-sm text-[#8b8498]">
         Marca no encontrada
       </div>
     );
   }
 
   const color = getBrandColor(brand.name);
-  const sorted = [...generations].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
 
   async function handleDeleteBrand() {
     deleteGenerationsForBrand(brandId);
@@ -60,227 +54,220 @@ export default function BrandDetailPage({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className="min-h-full px-4 md:px-8 py-8 max-w-5xl mx-auto"
-    >
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
-        <div className="flex items-center gap-3 min-w-0">
-          <button
-            onClick={() => router.push("/brands")}
-            className="p-2 rounded-lg text-[#4a5064] hover:text-white hover:bg-white/5 transition-colors shrink-0"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M10 3L5 8l5 5"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
+    <div className="min-h-full px-4 py-8 md:px-8 md:py-10">
+      <div className="mx-auto max-w-6xl">
+        <button
+          onClick={() => router.push("/brands")}
+          className="mb-6 inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-[#625d6d] transition-colors hover:text-[#171422]"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path
+              d="M10 3L5 8l5 5"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Volver a marcas
+        </button>
 
-          {/* Brand avatar + name */}
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold font-display shrink-0"
-            style={{
-              background: `${color}18`,
-              border: `1.5px solid ${color}35`,
-              color,
-            }}
-          >
-            {brand.name[0]?.toUpperCase()}
-          </div>
-          <div className="min-w-0">
-            <h1 className="font-display text-xl md:text-2xl font-bold text-white leading-tight truncate">
-              {brand.name}
-            </h1>
-            <p className="text-xs text-[#4a5064]">
-              {sorted.length} {sorted.length === 1 ? "programación" : "programaciones"}
-            </p>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => router.push(`/brands/${brandId}/edit`)}
-          >
-            Editar
-          </Button>
-          <Button
-            size="md"
-            onClick={() => router.push(`/brands/${brandId}/generate`)}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path
-                d="M7 2v10M2 7h10"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
-            Nueva programación
-          </Button>
-          <button
-            onClick={() => setConfirmDelete(!confirmDelete)}
-            className="px-3.5 py-1.5 text-xs font-medium rounded-lg text-[#4a5064] hover:text-red-400 hover:bg-red-950/20 transition-colors"
-          >
-            {confirmDelete ? "Cancelar" : "Eliminar"}
-          </button>
-        </div>
-      </div>
-
-      {/* Delete confirmation */}
-      <AnimatePresence>
-        {confirmDelete && (
-          <motion.div
-            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-            animate={{ opacity: 1, height: "auto", marginBottom: 24 }}
-            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-            transition={{ duration: 0.22, ease: "easeInOut" }}
-            className="overflow-hidden"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-red-950/15 border border-red-500/20 rounded-2xl px-5 py-4">
-              <div>
-                <p className="text-sm font-semibold text-red-300">
-                  ¿Eliminar {brand.name}?
-                </p>
-                <p className="text-xs text-red-500/60 mt-0.5">
-                  Se eliminarán todas las programaciones guardadas. Acción irreversible.
-                </p>
+        <header className="mb-10 md:mb-12">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ background: color }}
+                />
+                <h1 className="truncate font-display text-3xl font-bold leading-tight text-[#171422] md:text-4xl">
+                  {brand.name}
+                </h1>
               </div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <Button
-                variant="danger"
-                size="sm"
-                className="border border-red-700/40 bg-red-950/30 hover:bg-red-900/40 shrink-0"
-                onClick={handleDeleteBrand}
+                size="md"
+                onClick={() => router.push(`/brands/${brandId}/generate`)}
               >
-                Sí, eliminar marca
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path
+                    d="M7 2v10M2 7h10"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                Nueva programación
+              </Button>
+              <Button
+                variant="ghost"
+                size="md"
+                onClick={() => setConfirmDelete(!confirmDelete)}
+              >
+                {confirmDelete ? "Cancelar" : "Eliminar"}
               </Button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </header>
 
-      {/* Brand context */}
-      <div className="bg-[#0a0c1b] border border-white/6 rounded-2xl p-5 md:p-6 mb-8">
-        <div className="flex items-center gap-2 mb-5">
-          <div
-            className="w-1.5 h-4 rounded-full"
-            style={{ background: color }}
-          />
-          <p className="text-[11px] font-semibold text-[#4a5064] uppercase tracking-widest">
-            Contexto de la marca
-          </p>
-        </div>
-
-        <div className="space-y-5">
-          {brand.briefPermanente && (
-            <div>
-              <p className="text-[11px] font-semibold text-[#3a4060] uppercase tracking-wider mb-2">
-                Brief permanente
-              </p>
-              <p className="text-sm text-[#7880a8] font-mono whitespace-pre-wrap leading-relaxed line-clamp-4">
-                {brand.briefPermanente}
-              </p>
-            </div>
-          )}
-
-          {brand.analisisRedes && (
-            <div className="pt-4 border-t border-white/5">
-              <p className="text-[11px] font-semibold text-[#3a4060] uppercase tracking-wider mb-2">
-                Análisis de redes
-              </p>
-              <p className="text-sm text-[#7880a8] font-mono line-clamp-3 leading-relaxed">
-                {brand.analisisRedes.slice(0, 300)}
-                {brand.analisisRedes.length > 300 ? "…" : ""}
-              </p>
-            </div>
-          )}
-
-          {(brand.vocabulario.usa || brand.vocabulario.evita) && (
-            <div className="pt-4 border-t border-white/5 grid grid-cols-2 gap-6">
-              {brand.vocabulario.usa && (
+        <AnimatePresence>
+          {confirmDelete && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              className="mb-8 rounded-2xl border border-red-200 bg-red-50 px-5 py-4"
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-[11px] font-semibold text-[#3a4060] uppercase tracking-wider mb-2">
-                    Usa
+                  <p className="text-sm font-semibold text-red-700">
+                    ¿Eliminar {brand.name}?
                   </p>
-                  <p className="text-xs text-[#7880a8] font-mono leading-relaxed">
-                    {brand.vocabulario.usa}
+                  <p className="mt-0.5 text-xs text-red-600/75">
+                    Se eliminarán todas las programaciones guardadas. Acción
+                    irreversible.
+                  </p>
+                </div>
+                <Button variant="danger" size="sm" onClick={handleDeleteBrand}>
+                  Sí, eliminar marca
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] lg:gap-10">
+          <section className="lg:pr-2">
+            <div className="mb-7 flex items-center justify-between gap-3 md:mb-8">
+              <h2 className="font-display text-xl font-bold text-[#171422]">
+                Programaciones
+              </h2>
+              <span className="rounded-full border border-[#cfc7bd] bg-white px-2.5 py-1 text-xs font-semibold text-[#171422]">
+                {sorted.length}
+              </span>
+            </div>
+
+            {sorted.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-[#d8d2ca] bg-[#faf8f4] px-6 py-14 text-center">
+                <h3 className="font-display text-xl font-bold text-[#171422]">
+                  Sin programaciones todavía
+                </h3>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#625d6d]">
+                  Generá la primera programación mensual para que aparezca en el
+                  historial de esta marca.
+                </p>
+                <Button
+                  size="md"
+                  className="mt-5"
+                  onClick={() => router.push(`/brands/${brandId}/generate`)}
+                >
+                  Generar primera programación
+                </Button>
+              </div>
+            ) : (
+              <motion.div
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+                className="space-y-2.5"
+              >
+                {sorted.map((generation) => (
+                  <motion.div key={generation.id} variants={staggerItem}>
+                    <GenerationCard
+                      generation={generation}
+                      brandColor={color}
+                      compact
+                      onSelect={() =>
+                        router.push(
+                          `/brands/${brandId}/generations/${generation.id}`
+                        )
+                      }
+                      onDelete={() => deleteGeneration(generation.id)}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </section>
+
+          <aside className="flex flex-col rounded-2xl border border-[#ded8cf] bg-white p-5 shadow-sm lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)]">
+            <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b8498]">
+                  Contexto
+                </p>
+                <h2 className="mt-1 font-display text-2xl font-bold text-[#171422]">
+                  Base de marca
+                </h2>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="shrink-0"
+                onClick={() => router.push(`/brands/${brandId}/edit`)}
+              >
+                Editar contexto
+              </Button>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
+              {brand.briefPermanente ? (
+                <div>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b8498]">
+                    Brief permanente
+                  </p>
+                  <p className="text-sm leading-6 text-[#625d6d]">
+                    {brand.briefPermanente}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm leading-6 text-[#8b8498]">
+                  Sin brief permanente cargado.
+                </p>
+              )}
+
+              {brand.analisisRedes && (
+                <div className="border-t border-[#eee8df] pt-5">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b8498]">
+                    Análisis de redes
+                  </p>
+                  <p className="text-sm leading-6 text-[#625d6d]">
+                    {brand.analisisRedes}
                   </p>
                 </div>
               )}
-              {brand.vocabulario.evita && (
-                <div>
-                  <p className="text-[11px] font-semibold text-[#3a4060] uppercase tracking-wider mb-2">
-                    Evita
-                  </p>
-                  <p className="text-xs text-[#7880a8] font-mono leading-relaxed">
-                    {brand.vocabulario.evita}
-                  </p>
+
+              {(brand.vocabulario.usa || brand.vocabulario.evita) && (
+                <div className="grid gap-3 border-t border-[#eee8df] pt-5 sm:grid-cols-2">
+                  {brand.vocabulario.usa && (
+                    <div className="rounded-xl border border-[#ebe5dc] bg-[#faf8f4] p-3">
+                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b8498]">
+                        Usa
+                      </p>
+                      <p className="text-sm leading-6 text-[#625d6d]">
+                        {brand.vocabulario.usa}
+                      </p>
+                    </div>
+                  )}
+                  {brand.vocabulario.evita && (
+                    <div className="rounded-xl border border-[#ebe5dc] bg-[#faf8f4] p-3">
+                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b8498]">
+                        Evita
+                      </p>
+                      <p className="text-sm leading-6 text-[#625d6d]">
+                        {brand.vocabulario.evita}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
+          </aside>
         </div>
       </div>
-
-      {/* Generation history */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-[11px] font-semibold text-[#3a4060] uppercase tracking-widest">
-            Historial de programaciones
-          </p>
-          <span className="text-xs text-[#2a3048]">
-            {sorted.length} {sorted.length === 1 ? "generación" : "generaciones"}
-          </span>
-        </div>
-
-        {sorted.length === 0 ? (
-          <div className="flex flex-col items-center py-16 text-center border border-dashed border-white/6 rounded-2xl">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-              style={{ background: `${color}12`, border: `1px solid ${color}25` }}
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path
-                  d="M9 4v10M4 9h10"
-                  stroke={color}
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            <p className="text-sm text-[#4a5064] mb-5">
-              Todavía no hay programaciones para esta marca.
-            </p>
-            <Button
-              size="md"
-              onClick={() => router.push(`/brands/${brandId}/generate`)}
-            >
-              Generar primera programación
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {sorted.map((gen) => (
-              <GenerationCard
-                key={gen.id}
-                generation={gen}
-                brandColor={color}
-                onDelete={() => deleteGeneration(gen.id)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </motion.div>
+    </div>
   );
 }

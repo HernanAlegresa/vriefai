@@ -1,10 +1,12 @@
 "use client";
 
 import { use, useState } from "react";
-import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useBrands } from "@/hooks/useBrands";
 import { BrandForm } from "@/components/brands/BrandForm";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { StatusBanner } from "@/components/ui/StatusBanner";
+import { delay } from "@/lib/motion";
 
 export default function EditBrandPage({
   params,
@@ -15,37 +17,37 @@ export default function EditBrandPage({
   const router = useRouter();
   const { getBrand, updateBrand, loading: brandsLoading } = useBrands();
   const [isSaving, setIsSaving] = useState(false);
+  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [returnToGenerate] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("from") === "generate"
+  );
 
   const brand = getBrand(brandId);
 
   if (brandsLoading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-[#3a4060] text-sm">
-        Cargando…
-      </div>
-    );
+    return <LoadingState label="Cargando contexto de marca..." />;
   }
 
   if (!brand) {
     return (
-      <div className="flex items-center justify-center h-64 text-[#3a4060] text-sm">
+      <div className="flex h-64 items-center justify-center text-sm text-[#8b8498]">
         Marca no encontrada
       </div>
     );
   }
 
+  const backPath = returnToGenerate
+    ? `/brands/${brandId}/generate`
+    : `/brands/${brandId}`;
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className="min-h-full px-4 md:px-8 py-8 max-w-2xl mx-auto"
-    >
-      {/* Header */}
+    <div className="mx-auto min-h-full max-w-3xl px-4 py-8 md:px-8 md:py-10">
       <div className="mb-8">
         <button
-          onClick={() => router.push(`/brands/${brandId}`)}
-          className="flex items-center gap-2 text-[#4a5064] hover:text-white transition-colors mb-5 text-sm"
+          onClick={() => router.push(backPath)}
+          className="mb-5 flex cursor-pointer items-center gap-2 text-sm text-[#645f72] transition-colors hover:text-[#171422]"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path
@@ -56,13 +58,30 @@ export default function EditBrandPage({
               strokeLinejoin="round"
             />
           </svg>
-          Volver a {brand.name}
+          {returnToGenerate
+            ? "Volver a nueva programación"
+            : `Volver a ${brand.name}`}
         </button>
-        <h1 className="font-display text-2xl md:text-3xl font-bold text-white mb-1">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#8b8498]">
+          Contexto permanente
+        </p>
+        <h1 className="mb-2 font-display text-3xl font-bold text-[#171422] md:text-4xl">
           Editar marca
         </h1>
-        <p className="text-sm text-[#4a5064]">{brand.name}</p>
+        <p className="text-base text-[#645f72]">{brand.name}</p>
       </div>
+
+      <StatusBanner
+        show={status === "success"}
+        message="Cambios guardados correctamente"
+        className="mb-4"
+      />
+      <StatusBanner
+        show={status === "error"}
+        status="error"
+        message="No se pudieron guardar los cambios. Intentá de nuevo."
+        className="mb-4"
+      />
 
       <BrandForm
         initialValues={brand}
@@ -70,16 +89,21 @@ export default function EditBrandPage({
         isLoading={isSaving}
         onSubmit={async (data) => {
           if (isSaving) return;
+          setStatus("idle");
           setIsSaving(true);
           try {
             await updateBrand(brandId, data);
-            router.push(`/brands/${brandId}`);
+            setStatus("success");
+            setIsSaving(false);
+            await delay(850);
+            router.push(backPath);
           } catch {
+            setStatus("error");
             setIsSaving(false);
           }
         }}
-        onCancel={() => router.push(`/brands/${brandId}`)}
+        onCancel={() => router.push(backPath)}
       />
-    </motion.div>
+    </div>
   );
 }
