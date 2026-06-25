@@ -14,6 +14,41 @@ interface GenerationCardProps {
   onDelete?: () => void;
 }
 
+const MONTH_NAMES = [
+  "enero","febrero","marzo","abril","mayo","junio",
+  "julio","agosto","septiembre","octubre","noviembre","diciembre",
+];
+const MONTH_LABELS = [
+  "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+  "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre",
+];
+
+function extractMonthLabel(brief: string, fallback: string): string {
+  if (brief) {
+    const re = new RegExp(`(${MONTH_NAMES.join("|")})[^\\d]*(\\d{4})`, "i");
+    const m = brief.match(re);
+    if (m) {
+      const idx = MONTH_NAMES.findIndex((n) => n === m[1].toLowerCase());
+      if (idx !== -1) return `${MONTH_LABELS[idx]} ${m[2]}`;
+    }
+    let lastIdx = -1;
+    let result: string | null = null;
+    for (const [i, name] of MONTH_NAMES.entries()) {
+      const idx = brief.toLowerCase().lastIndexOf(name);
+      if (idx > lastIdx) { lastIdx = idx; result = MONTH_LABELS[i]; }
+    }
+    if (result) return result;
+  }
+  const d = new Date(fallback);
+  return `${MONTH_LABELS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+const FORMAT_CONFIG = {
+  reels:      { classes: "bg-indigo-50 text-indigo-700 border border-indigo-200" },
+  carruseles: { classes: "bg-teal-50 text-teal-700 border border-teal-200" },
+  historias:  { classes: "bg-amber-50 text-amber-700 border border-amber-200" },
+} as const;
+
 export function GenerationCard({
   generation,
   brandColor = "#4f7eff",
@@ -23,9 +58,7 @@ export function GenerationCard({
   onDelete,
 }: GenerationCardProps) {
   const [armedDelete, setArmedDelete] = useState(false);
-  const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined
-  );
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   function handleDeleteClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -39,19 +72,12 @@ export function GenerationCard({
   }
 
   const formats = [
-    { key: "reels", count: generation.cantReels, label: "Reels" },
-    { key: "carruseles", count: generation.cantCarruseles, label: "Carruseles" },
-    { key: "historias", count: generation.cantHistorias, label: "Historias" },
+    { key: "reels" as const,      count: generation.cantReels,      label: "Reels" },
+    { key: "carruseles" as const,  count: generation.cantCarruseles,  label: "Carruseles" },
+    { key: "historias" as const,   count: generation.cantHistorias,   label: "Historias" },
   ];
 
-  const firstLine = generation.briefMensual
-    ? generation.briefMensual.split("\n")[0]
-    : "";
-  const limit = compact ? 72 : 120;
-  const briefPreview = firstLine
-    ? firstLine.slice(0, limit)
-    : "Programación mensual generada";
-  const briefTruncated = firstLine.length > limit;
+  const monthLabel = extractMonthLabel(generation.briefMensual, generation.createdAt);
 
   return (
     <motion.div
@@ -77,12 +103,9 @@ export function GenerationCard({
           onClick={onSelect}
           className="min-w-0 flex-1 cursor-pointer text-left"
         >
-          <div className="mb-2 flex items-center gap-2">
+          <div className="mb-1.5 flex items-center gap-2">
             <span
-              className={cn(
-                "rounded-full",
-                compact ? "h-2 w-2" : "h-2.5 w-2.5"
-              )}
+              className={cn("rounded-full", compact ? "h-2 w-2" : "h-2.5 w-2.5")}
               style={{ background: selected ? brandColor : `${brandColor}80` }}
             />
             <p
@@ -94,15 +117,16 @@ export function GenerationCard({
               {formatDate(generation.createdAt)}
             </p>
           </div>
+
           <p
             className={cn(
-              "leading-relaxed text-[#8b8498]",
-              compact ? "line-clamp-2 text-[11px]" : "line-clamp-2 text-xs"
+              "font-medium text-[#625d6d]",
+              compact ? "text-[12px]" : "text-xs"
             )}
           >
-            {briefPreview}
-            {briefTruncated ? "…" : ""}
+            {monthLabel}
           </p>
+
           <div
             className={cn(
               "mt-2.5 flex flex-wrap items-center gap-1",
@@ -113,16 +137,10 @@ export function GenerationCard({
               <span
                 key={key}
                 className={cn(
-                  "rounded-full border font-semibold",
-                  compact
-                    ? "px-2 py-0.5 text-[10px]"
-                    : "px-2.5 py-1 text-[11px]"
+                  "rounded-full font-semibold",
+                  compact ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]",
+                  FORMAT_CONFIG[key].classes
                 )}
-                style={{
-                  background: key === "reels" ? `${brandColor}10` : "#f7f3ed",
-                  borderColor: key === "reels" ? `${brandColor}24` : "#e8e1d8",
-                  color: key === "reels" ? brandColor : "#645f72",
-                }}
                 title={label}
               >
                 {count} {label}
@@ -151,23 +169,11 @@ export function GenerationCard({
           >
             {armedDelete ? (
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path
-                  d="M2 6l3 3 5-5"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             ) : (
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path
-                  d="M1.5 3h9M4 3V2h4v1M5 5.5v3M7 5.5v3M2.5 3l.7 6.5h5.6L9.5 3H2.5Z"
-                  stroke="currentColor"
-                  strokeWidth="1.3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M1.5 3h9M4 3V2h4v1M5 5.5v3M7 5.5v3M2.5 3l.7 6.5h5.6L9.5 3H2.5Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
           </button>

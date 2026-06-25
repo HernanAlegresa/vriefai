@@ -19,13 +19,25 @@ Antes de las piezas, definí:
 - El mix de pilares aplicado a este mes específico
 
 ## REELS
-Para cada reel: idea central, gancho de apertura, desarrollo del storytelling, cierre/CTA.
+Para cada reel, usá exactamente este formato:
+
+### Reel N — [título]
+**Fecha sugerida:** [día] de [mes]
+Idea central, gancho de apertura, desarrollo del storytelling, cierre/CTA.
 
 ## CARRUSELES
-Para cada carrusel: idea central, slide a slide con el texto de cada uno, slide final con cierre/CTA.
+Para cada carrusel, usá exactamente este formato:
+
+### Carrusel N — [título]
+**Fecha sugerida:** [día] de [mes]
+Idea central, slide a slide con el texto de cada uno, slide final con cierre/CTA.
 
 ## HISTORIAS
-Para cada historia: secuencia de slides, texto o sticker de cada slide, acción esperada (respuesta, encuesta, link).
+Para cada historia, usá exactamente este formato:
+
+### Historia N — [título]
+**Fecha sugerida:** [día] de [mes]
+Secuencia de slides, texto o sticker de cada slide, acción esperada (respuesta, encuesta, link).
 
 Reglas:
 - Generás solo estructura e idea. Sin diseño visual, colores ni tipografías.

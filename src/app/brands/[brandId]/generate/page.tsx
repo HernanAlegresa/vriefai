@@ -2,17 +2,35 @@
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { useBrands } from "@/hooks/useBrands";
 import { useGenerations } from "@/hooks/useGenerations";
 import {
   GenerationForm,
   type GenerationParams,
 } from "@/components/generations/GenerationForm";
-import { GenerationOutput } from "@/components/generations/GenerationOutput";
+import { Button } from "@/components/ui/Button";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { StatusBanner } from "@/components/ui/StatusBanner";
 import { clearGenerateDraft } from "@/lib/generateDraft";
 import { getBrandColor } from "@/lib/brandColors";
+import type { Generation } from "@/lib/types";
+
+const MONTHS_ES = [
+  "enero","febrero","marzo","abril","mayo","junio",
+  "julio","agosto","septiembre","octubre","noviembre","diciembre",
+];
+
+function extractMonth(brief: string): string | null {
+  const lower = brief.toLowerCase();
+  let lastIdx = -1;
+  let result: string | null = null;
+  for (const m of MONTHS_ES) {
+    const idx = lower.lastIndexOf(m);
+    if (idx > lastIdx) { lastIdx = idx; result = m.charAt(0).toUpperCase() + m.slice(1); }
+  }
+  return result;
+}
 
 export default function GeneratePage({
   params,
@@ -24,10 +42,10 @@ export default function GeneratePage({
   const { getBrand, loading: brandsLoading } = useBrands();
   const { createGeneration } = useGenerations();
 
-  const [output, setOutput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [submittedBrief, setSubmittedBrief] = useState("");
+  const [savedGeneration, setSavedGeneration] = useState<Generation | null>(null);
 
   const brand = getBrand(brandId);
 
@@ -43,12 +61,12 @@ export default function GeneratePage({
     );
   }
 
-  const activeBrand = brand;
-  const color = getBrandColor(activeBrand.name);
+  const color = getBrandColor(brand.name);
 
   async function handleGenerate(genParams: GenerationParams) {
-    setOutput("");
-    setSaved(false);
+    if (!brand) return;
+    setSubmittedBrief(genParams.briefMensual);
+    setSavedGeneration(null);
     setHasError(false);
     setIsLoading(true);
 
@@ -57,10 +75,10 @@ export default function GeneratePage({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          briefPermanente: activeBrand.briefPermanente,
-          analisisRedes: activeBrand.analisisRedes,
-          vocabularioUsa: activeBrand.vocabulario.usa,
-          vocabularioEvita: activeBrand.vocabulario.evita,
+          briefPermanente: brand.briefPermanente,
+          analisisRedes: brand.analisisRedes,
+          vocabularioUsa: brand.vocabulario.usa,
+          vocabularioEvita: brand.vocabulario.evita,
           briefMensual: genParams.briefMensual,
           cantReels: genParams.cantReels,
           cantCarruseles: genParams.cantCarruseles,
@@ -75,16 +93,13 @@ export default function GeneratePage({
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullOutput = "";
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        fullOutput += chunk;
-        setOutput((prev) => prev + chunk);
+        fullOutput += decoder.decode(value, { stream: true });
       }
 
-      await createGeneration({
+      const gen = await createGeneration({
         brandId,
         briefMensual: genParams.briefMensual,
         cantReels: genParams.cantReels,
@@ -92,17 +107,18 @@ export default function GeneratePage({
         cantHistorias: genParams.cantHistorias,
         output: fullOutput,
       });
-      setSaved(true);
       clearGenerateDraft(brandId);
-    } catch (error) {
+      setSavedGeneration(gen);
+    } catch {
       setHasError(true);
-      setOutput(
-        `Error: ${error instanceof Error ? error.message : "Error desconocido"}`
-      );
     } finally {
       setIsLoading(false);
     }
   }
+
+  const month = extractMonth(submittedBrief);
+  const year = savedGeneration ? new Date(savedGeneration.createdAt).getFullYear() : null;
+  const monthLabel = month && year ? `${month} ${year}` : month ?? null;
 
   return (
     <div className="mx-auto min-h-full max-w-4xl px-4 py-8 md:px-8 md:py-10">
@@ -112,13 +128,7 @@ export default function GeneratePage({
           className="mb-5 flex cursor-pointer items-center gap-2 text-sm text-[#645f72] transition-colors hover:text-[#171422]"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M10 3L5 8l5 5"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Volver a {brand.name}
         </button>
@@ -128,10 +138,7 @@ export default function GeneratePage({
             Nueva programación
           </p>
           <div className="mt-3 flex items-center justify-center gap-3">
-            <span
-              className="h-3 w-3 shrink-0 rounded-full"
-              style={{ background: color }}
-            />
+            <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: color }} />
             <h1 className="font-display text-3xl font-bold leading-tight tracking-[-0.03em] text-[#171422] md:text-5xl">
               {brand.name}
             </h1>
@@ -139,25 +146,102 @@ export default function GeneratePage({
         </div>
       </div>
 
-      <GenerationForm
-        brand={brand}
-        onGenerate={handleGenerate}
-        isLoading={isLoading}
-      />
+      <AnimatePresence mode="wait">
+        {isLoading && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col items-center gap-8 py-12"
+          >
+            <div className="flex items-center gap-2">
+              {[0, 1, 2].map((i) => (
+                <motion.span
+                  key={i}
+                  className="h-2.5 w-2.5 rounded-full bg-[#171422]"
+                  animate={{ opacity: [0.2, 1, 0.2] }}
+                  transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.22, ease: "easeInOut" }}
+                />
+              ))}
+            </div>
 
-      <StatusBanner
-        show={saved}
-        message={`Programación guardada en el historial de ${brand.name}`}
-        className="mt-4"
-      />
-      <StatusBanner
-        show={hasError && !isLoading}
-        status="error"
-        message="No se pudo completar la generación. Revisá el output o intentá de nuevo."
-        className="mt-4"
-      />
+            <div className="w-full max-w-md text-center">
+              <p className="font-display text-xl font-bold text-[#171422]">
+                Generando la programación
+              </p>
+              <p className="mt-1.5 text-sm text-[#625d6d]">
+                Esperá unos minutos mientras se genera la programación
+              </p>
+            </div>
 
-      <GenerationOutput output={output} isLoading={isLoading} />
+            {submittedBrief && (
+              <div className="w-full max-w-md rounded-xl border border-[#ebe5dc] bg-[#faf8f4] p-4">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b8498]">
+                  Brief del mes
+                </p>
+                <p className="line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-[#625d6d]">
+                  {submittedBrief}
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0">
+                <path d="M7.5 1.5L1 13.5h13L7.5 1.5zM7.5 6v3.5M7.5 11h.01" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              No cierres esta pestaña — tu programación se está generando
+            </div>
+          </motion.div>
+        )}
+
+        {!isLoading && savedGeneration && (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col items-center gap-6 py-12 text-center"
+          >
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12l5 5L19 7" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b8498]">
+                Programación generada
+              </p>
+              <h2 className="mt-2 font-display text-3xl font-bold text-[#171422]">
+                {monthLabel ?? brand.name}
+              </h2>
+              <p className="mt-1 text-sm text-[#625d6d]">{brand.name}</p>
+            </div>
+
+            <Button
+              size="lg"
+              onClick={() => router.push(`/brands/${brandId}/generations/${savedGeneration.id}`)}
+            >
+              Ver programación
+            </Button>
+          </motion.div>
+        )}
+
+        {!isLoading && !savedGeneration && (
+          <motion.div key="form" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <StatusBanner
+              show={hasError}
+              status="error"
+              message="No se pudo completar la generación. Revisá tu conexión e intentá de nuevo."
+              className="mb-4"
+            />
+            <GenerationForm brand={brand} onGenerate={handleGenerate} isLoading={false} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
