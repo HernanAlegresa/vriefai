@@ -302,23 +302,27 @@ function ItemModal({ day, month, year, items, onItemUpdate, onItemDelete, onClos
                   const c = CHIP_CONFIG[item.type];
                   return (
                     <div key={`modal-${item.id}-${idx}`} className="rounded-xl border border-[#ede8e0] p-4">
-                      <div className="mb-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                      <div className="mb-3 grid grid-cols-3 items-center">
+                        <div>
                           <span className={cn("rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em]", c.bg)}>
                             {c.label} {item.number}
                           </span>
-                          {item.edited && (
-                            <span className="rounded bg-[#f0ede8] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[#8b8498]">
-                              editado
-                            </span>
-                          )}
                         </div>
-                        <button
-                          onClick={() => startEdit(item)}
-                          className="rounded-lg border border-[#d8d2ca] px-2.5 py-1 text-xs font-medium text-[#625d6d] transition-colors hover:border-[#9b8ec4] hover:bg-[#f6f4fb] hover:text-[#4a3f6b]"
-                        >
-                          Editar
-                        </button>
+                        {item.edited ? (
+                          <p className="text-center text-[9px] font-semibold uppercase tracking-[0.08em] text-[#8b8498]">
+                            editado
+                          </p>
+                        ) : (
+                          <span />
+                        )}
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => startEdit(item)}
+                            className="rounded-lg border border-[#d8d2ca] px-2.5 py-1 text-xs font-medium text-[#625d6d] transition-colors hover:border-[#9b8ec4] hover:bg-[#f6f4fb] hover:text-[#4a3f6b]"
+                          >
+                            Editar
+                          </button>
+                        </div>
                       </div>
                       {item.title && (
                         <p className="mb-3 text-center text-base font-bold text-[#171422]">{item.title}</p>
@@ -438,6 +442,7 @@ export function CalendarView({ contentItems: initialItems, briefMensual = "", cr
             const isValidDay = day >= 1 && day <= daysInMonth;
             const cellItems = isValidDay ? (dayMap.get(day) ?? []) : [];
             const hasItems = cellItems.length > 0;
+            const hasEdited = cellItems.some((i) => i.edited);
             const isClickable = isValidDay && hasItems;
             const isLastRow = cellIdx >= totalCells - 7;
             const isLastCol = (cellIdx + 1) % 7 === 0;
@@ -447,13 +452,16 @@ export function CalendarView({ contentItems: initialItems, briefMensual = "", cr
                 key={cellIdx}
                 onClick={() => isClickable && setModalDay(day)}
                 className={cn(
-                  "min-h-[72px] border-b border-r border-[#ede8e0] p-1.5 md:min-h-[84px] md:p-2",
+                  "relative min-h-[72px] border-b border-r border-[#ede8e0] p-1.5 md:min-h-[84px] md:p-2",
                   isLastRow && "border-b-0",
                   isLastCol && "border-r-0",
                   !isValidDay && "bg-[#faf8f4]",
                   isClickable && "cursor-pointer transition-colors duration-100 hover:bg-[#faf8f4]",
                 )}
               >
+                {isValidDay && hasEdited && (
+                  <span className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-[#9b8ec4]/70" />
+                )}
                 {isValidDay && (
                   <>
                     <p className={cn("mb-1 text-xs font-medium leading-none", hasItems ? "text-[#171422]" : "text-[#c4bfba]")}>
