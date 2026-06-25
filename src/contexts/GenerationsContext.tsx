@@ -10,6 +10,7 @@ import {
 } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Generation } from "@/lib/types";
+import { insertContentItems } from "@/lib/contentItems";
 
 type DbGeneration = {
   id: string;
@@ -19,6 +20,8 @@ type DbGeneration = {
   cant_carruseles: number;
   cant_historias: number;
   output: string;
+  month: number | null;
+  year: number | null;
   created_at: string;
 };
 
@@ -31,6 +34,8 @@ function fromDb(row: DbGeneration): Generation {
     cantCarruseles: row.cant_carruseles,
     cantHistorias: row.cant_historias,
     output: row.output,
+    month: row.month ?? null,
+    year: row.year ?? null,
     createdAt: row.created_at,
   };
 }
@@ -72,12 +77,15 @@ export function GenerationsProvider({ children }: { children: ReactNode }) {
           cant_carruseles: data.cantCarruseles,
           cant_historias: data.cantHistorias,
           output: data.output,
+          month: data.month ?? null,
+          year: data.year ?? null,
         })
         .select()
         .single();
       if (error) throw error;
       const gen = fromDb(row as DbGeneration);
       setGenerations((prev) => [gen, ...prev]);
+      await insertContentItems(gen.id, gen.output);
       return gen;
     },
     []

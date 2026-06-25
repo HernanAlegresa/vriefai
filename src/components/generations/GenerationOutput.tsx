@@ -112,7 +112,7 @@ export function GenerationOutput({ output, isLoading }: GenerationOutputProps) {
 
       {/* Viewer card */}
       <div className="overflow-hidden rounded-2xl border border-[#ded8cf] bg-white shadow-sm">
-        <GenerationViewer output={output} isLoading={isLoading} />
+        <GenerationViewer output={output} contentItems={[]} />
       </div>
     </motion.div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useBrands } from "@/hooks/useBrands";
@@ -11,6 +11,9 @@ import { GenerationViewer } from "@/components/generations/GenerationViewer";
 import { getBrandColor } from "@/lib/brandColors";
 import { fadeUp, fadeUpTransition } from "@/lib/motion";
 import { formatDate } from "@/lib/utils";
+import { ensureContentItems, fromDbContentItem } from "@/lib/contentItems";
+import { supabase } from "@/lib/supabase";
+import type { ContentItem } from "@/lib/types";
 
 export default function GenerationDetailPage({
   params,
@@ -23,11 +26,34 @@ export default function GenerationDetailPage({
   const { getGeneration, loading: generationsLoading } = useGenerations(brandId);
   const [copied, setCopied] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
+  const [contentItems, setContentItems] = useState<ContentItem[]>([]);
+  const [itemsLoading, setItemsLoading] = useState(true);
 
   const brand = getBrand(brandId);
   const generation = getGeneration(generationId);
 
-  if (brandsLoading || generationsLoading) {
+  useEffect(() => {
+    if (!generation) {
+      setItemsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    async function load() {
+      setItemsLoading(true);
+      await ensureContentItems(generation!.id, generation!.output);
+      const { data } = await supabase
+        .from("content_items")
+        .select("*")
+        .eq("generation_id", generation!.id)
+        .order("sort_order");
+      if (!cancelled && data) setContentItems(data.map(fromDbContentItem));
+      if (!cancelled) setItemsLoading(false);
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [generation?.id]);
+
+  if (brandsLoading || generationsLoading || itemsLoading) {
     return <LoadingState label="Cargando programación..." />;
   }
 
@@ -164,6 +190,7 @@ export default function GenerationDetailPage({
         >
           <GenerationViewer
             output={generation.output}
+            contentItems={contentItems}
             briefMensual={generation.briefMensual}
             createdAt={generation.createdAt}
           />

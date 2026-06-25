@@ -32,6 +32,17 @@ function extractMonth(brief: string): string | null {
   return result;
 }
 
+function extractMonthYear(brief: string): { month: number | null; year: number } {
+  const lower = brief.toLowerCase();
+  let lastIdx = -1;
+  let monthNum: number | null = null;
+  for (let i = 0; i < MONTHS_ES.length; i++) {
+    const idx = lower.lastIndexOf(MONTHS_ES[i]);
+    if (idx > lastIdx) { lastIdx = idx; monthNum = i + 1; }
+  }
+  return { month: monthNum, year: new Date().getFullYear() };
+}
+
 export default function GeneratePage({
   params,
 }: {
@@ -43,7 +54,7 @@ export default function GeneratePage({
   const { createGeneration } = useGenerations();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [hasError, setHasError] = useState(false);
+  const [hasError, setHasError] = useState<false | "generic" | "duplicate">(false);
   const [submittedBrief, setSubmittedBrief] = useState("");
   const [savedGeneration, setSavedGeneration] = useState<Generation | null>(null);
 
@@ -99,6 +110,7 @@ export default function GeneratePage({
         fullOutput += decoder.decode(value, { stream: true });
       }
 
+      const { month, year } = extractMonthYear(genParams.briefMensual);
       const gen = await createGeneration({
         brandId,
         briefMensual: genParams.briefMensual,
@@ -106,11 +118,14 @@ export default function GeneratePage({
         cantCarruseles: genParams.cantCarruseles,
         cantHistorias: genParams.cantHistorias,
         output: fullOutput,
+        month,
+        year,
       });
       clearGenerateDraft(brandId);
       setSavedGeneration(gen);
-    } catch {
-      setHasError(true);
+    } catch (err: unknown) {
+      const supaErr = err as { code?: string };
+      setHasError(supaErr?.code === "23505" ? "duplicate" : "generic");
     } finally {
       setIsLoading(false);
     }
@@ -233,9 +248,13 @@ export default function GeneratePage({
         {!isLoading && !savedGeneration && (
           <motion.div key="form" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <StatusBanner
-              show={hasError}
+              show={!!hasError}
               status="error"
-              message="No se pudo completar la generación. Revisá tu conexión e intentá de nuevo."
+              message={
+                hasError === "duplicate"
+                  ? "Ya existe una programación para esta marca en ese mes. Eliminá la actual antes de generar una nueva."
+                  : "No se pudo completar la generación. Revisá tu conexión e intentá de nuevo."
+              }
               className="mb-4"
             />
             <GenerationForm brand={brand} onGenerate={handleGenerate} isLoading={false} />

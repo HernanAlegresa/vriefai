@@ -65,11 +65,21 @@ function getSectionMeta(
   return null; // Unrecognized heading (month names, dates, etc.) — skip it
 }
 
+const MONTHS_ES: Record<string, number> = {
+  enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
+  julio: 7, agosto: 8, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12,
+};
+
 function extractSuggestedDate(content: string): string | null {
   const m = content.match(
-    /\*\*Fecha sugerida:\*\*\s*(\d{1,2}\s+de\s+[a-záéíóúü]+)/i,
+    /\*\*Fecha sugerida:\*\*\s*(\d{1,2})\s+de\s+([a-záéíóúü]+)/i,
   );
-  return m ? m[1].trim() : null;
+  if (!m) return null;
+  const day = parseInt(m[1], 10);
+  const monthNum = MONTHS_ES[m[2].toLowerCase()];
+  if (!monthNum || day < 1 || day > 31) return null;
+  const year = new Date().getFullYear();
+  return `${year}-${String(monthNum).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function parseItems(content: string, type: SectionType): ContentItem[] {
@@ -108,8 +118,8 @@ function cleanItemTitle(title: string, type: SectionType): string {
 
   const pattern = patterns[type];
   if (pattern) {
-    // Always return the stripped string — empty string means bare "Type N" heading (no subtitle)
-    return title.replace(pattern, "").trim();
+    const stripped = title.replace(pattern, "").trim();
+    return stripped || title.trim();
   }
 
   return title.replace(/^\d+[\.\s\-–—]+\s*/, "").trim();
