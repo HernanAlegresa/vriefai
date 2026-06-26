@@ -26,10 +26,11 @@ export default function BrandDetailPage({
   const brand = getBrand(brandId);
   const sorted = useMemo(
     () =>
-      [...generations].sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      ),
+      [...generations].sort((a, b) => {
+        if ((b.year ?? 0) !== (a.year ?? 0)) return (b.year ?? 0) - (a.year ?? 0);
+        if ((b.month ?? 0) !== (a.month ?? 0)) return (b.month ?? 0) - (a.month ?? 0);
+        return a.version.localeCompare(b.version);
+      }),
     [generations]
   );
 

@@ -22,6 +22,7 @@ type DbGeneration = {
   output: string;
   month: number | null;
   year: number | null;
+  version: string;
   created_at: string;
 };
 
@@ -36,6 +37,7 @@ function fromDb(row: DbGeneration): Generation {
     output: row.output,
     month: row.month ?? null,
     year: row.year ?? null,
+    version: row.version,
     createdAt: row.created_at,
   };
 }
@@ -43,7 +45,7 @@ function fromDb(row: DbGeneration): Generation {
 type GenerationsContextValue = {
   generations: Generation[];
   loading: boolean;
-  createGeneration: (data: Omit<Generation, "id" | "createdAt">) => Promise<Generation>;
+  createGeneration: (data: Omit<Generation, "id" | "createdAt" | "version">) => Promise<Generation>;
   getGeneration: (id: string) => Generation | undefined;
   deleteGeneration: (id: string) => Promise<void>;
   deleteGenerationsForBrand: (brandId: string) => void;
@@ -67,7 +69,27 @@ export function GenerationsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const createGeneration = useCallback(
-    async (data: Omit<Generation, "id" | "createdAt">): Promise<Generation> => {
+    async (data: Omit<Generation, "id" | "createdAt" | "version">): Promise<Generation> => {
+      let version = "v1";
+
+      if (data.month !== null && data.year !== null) {
+        const { data: existing } = await supabase
+          .from("generations")
+          .select("version")
+          .eq("brand_id", data.brandId)
+          .eq("month", data.month)
+          .eq("year", data.year);
+
+        if (existing && existing.length > 0) {
+          let maxNum = 0;
+          for (const row of existing) {
+            const match = (row.version as string).match(/^v(\d+)$/);
+            if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+          }
+          version = `v${maxNum + 1}`;
+        }
+      }
+
       const { data: row, error } = await supabase
         .from("generations")
         .insert({
@@ -79,10 +101,18 @@ export function GenerationsProvider({ children }: { children: ReactNode }) {
           output: data.output,
           month: data.month ?? null,
           year: data.year ?? null,
+          version,
         })
         .select()
         .single();
-      if (error) throw error;
+
+      if (error) {
+        if (error.code === "23505") {
+          throw Object.assign(new Error("duplicate"), { code: "23505", version });
+        }
+        throw error;
+      }
+
       const gen = fromDb(row as DbGeneration);
       setGenerations((prev) => [gen, ...prev]);
       await insertContentItems(gen.id, gen.output);

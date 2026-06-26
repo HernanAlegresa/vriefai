@@ -116,6 +116,17 @@ export function GenerationCard({
             >
               {formatDate(generation.createdAt)}
             </p>
+            <span
+              className={cn(
+                "rounded-full font-semibold",
+                compact ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-0.5 text-[10px]",
+                generation.version === "v0"
+                  ? "border border-[#d6cfc6] bg-[#f3f0eb] text-[#8b8498]"
+                  : "border border-indigo-200 bg-indigo-50 text-indigo-700"
+              )}
+            >
+              {generation.version}
+            </span>
           </div>
 
           <p

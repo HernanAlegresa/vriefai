@@ -21,6 +21,7 @@ export interface Generation {
   output: string;
   month: number | null;
   year: number | null;
+  version: string;
   createdAt: string;
 }
 
