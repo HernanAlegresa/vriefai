@@ -54,7 +54,7 @@ export default function GeneratePage({
   const { createGeneration } = useGenerations();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [hasError, setHasError] = useState<false | "generic" | "duplicate">(false);
+  const [hasError, setHasError] = useState<false | "generic" | { type: "duplicate"; version: string }>(false);
   const [submittedBrief, setSubmittedBrief] = useState("");
   const [savedGeneration, setSavedGeneration] = useState<Generation | null>(null);
 
@@ -91,6 +91,7 @@ export default function GeneratePage({
           vocabularioUsa: brand.vocabulario.usa,
           vocabularioEvita: brand.vocabulario.evita,
           briefMensual: genParams.briefMensual,
+          angulosEspecificos: genParams.angulosEspecificos,
           cantReels: genParams.cantReels,
           cantCarruseles: genParams.cantCarruseles,
           cantHistorias: genParams.cantHistorias,
@@ -124,8 +125,12 @@ export default function GeneratePage({
       clearGenerateDraft(brandId);
       setSavedGeneration(gen);
     } catch (err: unknown) {
-      const supaErr = err as { code?: string };
-      setHasError(supaErr?.code === "23505" ? "duplicate" : "generic");
+      const supaErr = err as { code?: string; version?: string };
+      if (supaErr?.code === "23505") {
+        setHasError({ type: "duplicate", version: supaErr.version ?? "v1" });
+      } else {
+        setHasError("generic");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -251,8 +256,8 @@ export default function GeneratePage({
               show={!!hasError}
               status="error"
               message={
-                hasError === "duplicate"
-                  ? "Ya existe una programación para esta marca en ese mes. Eliminá la actual antes de generar una nueva."
+                hasError && typeof hasError === "object"
+                  ? `Ya existe una programación ${hasError.version} para esta marca en ese mes.`
                   : "No se pudo completar la generación. Revisá tu conexión e intentá de nuevo."
               }
               className="mb-4"

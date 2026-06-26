@@ -15,6 +15,7 @@ import { staggerContainer, staggerItem } from "@/lib/motion";
 
 export interface GenerationParams {
   briefMensual: string;
+  angulosEspecificos?: string;
   cantReels: number;
   cantCarruseles: number;
   cantHistorias: number;
@@ -73,6 +74,7 @@ export function GenerationForm({
   const router = useRouter();
   const initialState = getInitialFormState(brand.id);
   const [briefMensual, setBriefMensual] = useState(initialState.briefMensual);
+  const [angulosEspecificos, setAngulosEspecificos] = useState("")
   const [volume, setVolume] = useState(initialState.volume);
   const [contextOpen, setContextOpen] = useState(false);
 
@@ -86,7 +88,11 @@ export function GenerationForm({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canGenerate) return;
-    onGenerate({ briefMensual, ...volume });
+    onGenerate({
+      briefMensual,
+      angulosEspecificos: angulosEspecificos.trim() || undefined,
+      ...volume,
+    });
   }
 
   function setVol(key: VolumeKey, val: number) {
@@ -252,6 +258,24 @@ export function GenerationForm({
             Completá el brief del mes para continuar.
           </p>
         )}
+
+        <div className="mt-6 border-t border-[#ebe5dc] pt-5">
+          <div className="mb-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#171422]">
+              Ángulos o ideas específicas{" "}
+              <span className="font-normal normal-case tracking-normal text-[#8b8498]">
+                (opcional)
+              </span>
+            </p>
+          </div>
+          <Textarea
+            value={angulosEspecificos}
+            onChange={(e) => setAngulosEspecificos(e.target.value)}
+            rows={4}
+            placeholder="Ideas concretas que querés que el modelo considere este mes. Ej: para el Reel 1 quiero el ángulo de que el producto nos sorprendió con sus ventas."
+            className="border-[#cfc7bd] focus:border-[#171422]/45 focus:ring-[#171422]/15"
+          />
+        </div>
       </motion.section>
 
       <motion.section variants={staggerItem}>
